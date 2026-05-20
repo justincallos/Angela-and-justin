@@ -17,13 +17,15 @@ const C = {
 };
 
 const getCarExpenses = (expenses, carId) => expenses.filter(e => e.car_id === carId);
+const NONNA_FEE = 500;
 const calcTotals = (car, carExpenses) => {
   const totalExpenses = carExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const purchasePrice = Number(car.purchase_price || 0);
-  const totalCost = purchasePrice + totalExpenses;
+  const nonnaFee = car.nonna_funded ? NONNA_FEE : 0;
+  const totalCost = purchasePrice + nonnaFee + totalExpenses;
   const justinPaid = carExpenses.filter(e => e.paid_by === "Justin").reduce((s, e) => s + Number(e.amount || 0), 0);
   const angelaPaid = carExpenses.filter(e => e.paid_by === "Angela").reduce((s, e) => s + Number(e.amount || 0), 0);
-  return { totalExpenses, totalCost, justinPaid, angelaPaid };
+  return { totalExpenses, totalCost, justinPaid, angelaPaid, nonnaFee };
 };
 const calcPayout = (car, carExpenses) => {
   const { totalCost, justinPaid, angelaPaid } = calcTotals(car, carExpenses);
