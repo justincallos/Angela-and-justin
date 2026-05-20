@@ -221,7 +221,7 @@ const HomeScreen = ({cars,expenses,loading,onSelectCar,onAddCar,onHistory}) => {
   );
 };
 
-const CarDetailScreen = ({car,expenses,onBack,onAddExpense,onMarkSold,onDeleteExpense,onDeleteCar,onEditCar,onEditExpense}) => {
+const CarDetailScreen = ({car,expenses,onBack,onAddExpense,onMarkSold,onDeleteExpense,onDeleteCar,onEditCar,onEditExpense,onToggleNonna}) => {
   const carExp=getCarExpenses(expenses,car.id);
   const {totalExpenses,totalCost,justinPaid,angelaPaid}=calcTotals(car,carExp);
   const isSold=car.status==="sold";
@@ -259,6 +259,21 @@ const CarDetailScreen = ({car,expenses,onBack,onAddExpense,onMarkSold,onDeleteEx
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Nonna Money */}
+        <div style={{background:car.nonna_funded?"#FFFBEB":C.card,border:"1.5px solid "+(car.nonna_funded?"#FCD34D":C.border),borderRadius:18,padding:"16px 18px",marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div><div style={{fontSize:14,fontWeight:700,color:C.dark}}>Nonna's Money</div><div style={{fontSize:12,color:C.muted,marginTop:3}}>{car.nonna_funded?"Funded by Angela's mum":"Standard funding"}</div></div>
+            <button onClick={onToggleNonna} style={{background:car.nonna_funded?"#F59E0B":"#E5E5EA",border:"none",borderRadius:30,width:51,height:31,position:"relative",cursor:"pointer",flexShrink:0}}><div style={{position:"absolute",top:3,left:car.nonna_funded?23:3,width:25,height:25,background:"#fff",borderRadius:50,boxShadow:"0 1px 4px rgba(0,0,0,0.2)",transition:"left 0.2s"}}/></button>
+          </div>
+          {car.nonna_funded&&(
+            <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid #FDE68A"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:13,color:"#92400E",fontWeight:500}}>Purchase price</span><span style={{fontSize:14,fontWeight:700,color:"#92400E"}}>{fmt(car.purchase_price)}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:13,color:"#92400E",fontWeight:500}}>Return fee</span><span style={{fontSize:14,fontWeight:700,color:"#92400E"}}>$500.00</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",paddingTop:10,borderTop:"1px solid #FDE68A"}}><span style={{fontSize:14,fontWeight:800,color:"#78350F"}}>Owed to Angela's mum</span><span style={{fontSize:16,fontWeight:800,color:"#78350F"}}>{fmt(Number(car.purchase_price)+500)}</span></div>
+            </div>
+          )}
         </div>
 
         {isSold&&payout&&(
@@ -524,6 +539,7 @@ export default function App() {
   const handleDeleteExpense=async(expId)=>{await supabase.from("expenses").delete().eq("id",expId);setExpenses(prev=>prev.filter(e=>e.id!==expId));};
   const handleEditCar=async(form)=>{const{data,error}=await supabase.from("cars").update({model:form.model,rego:form.rego,purchase_price:Number(form.purchase_price),purchase_date:form.purchase_date||null,photo:form.photo||null,...(form.sell_price?{sell_price:Number(form.sell_price)}:{}),...(form.sold_date?{sold_date:form.sold_date}:{})}).eq("id",selectedCarId).select().single();if(!error&&data){setCars(prev=>prev.map(c=>c.id===selectedCarId?data:c));setScreen("car");}};
   const handleEditExpense=async(form)=>{const{data,error}=await supabase.from("expenses").update({date:form.date,type:form.type,description:form.description||null,amount:Number(form.amount),paid_by:form.paid_by,receipt:form.receipt||null}).eq("id",editingExpense.id).select().single();if(!error&&data){setExpenses(prev=>prev.map(e=>e.id===editingExpense.id?data:e));setEditingExpense(null);setScreen("car");}};
+  const handleToggleNonna=async()=>{const newVal=!selectedCar.nonna_funded;const{data,error}=await supabase.from("cars").update({nonna_funded:newVal}).eq("id",selectedCarId).select().single();if(!error&&data){setCars(prev=>prev.map(c=>c.id===selectedCarId?data:c));}};
   const handleDeleteCar=async()=>{if(!window.confirm("Delete this car and all its expenses?"))return;await supabase.from("expenses").delete().eq("car_id",selectedCarId);await supabase.from("cars").delete().eq("id",selectedCarId);setCars(prev=>prev.filter(c=>c.id!==selectedCarId));setExpenses(prev=>prev.filter(e=>e.car_id!==selectedCarId));setScreen("home");};
 
   if(screen==="add-car")return<AddCarScreen onBack={()=>setScreen("home")} onSave={handleAddCar}/>;
@@ -532,6 +548,6 @@ export default function App() {
   if(screen==="edit-car"&&selectedCar)return<EditCarScreen car={selectedCar} onBack={()=>setScreen("car")} onSave={handleEditCar}/>;
   if(screen==="edit-expense"&&selectedCar&&editingExpense)return<EditExpenseScreen car={selectedCar} expense={editingExpense} onBack={()=>{setEditingExpense(null);setScreen("car");}} onSave={handleEditExpense}/>;
   if(screen==="history")return<SalesHistoryScreen cars={cars} expenses={expenses} onBack={()=>setScreen("home")}/>;
-  if(screen==="car"&&selectedCar)return<CarDetailScreen car={selectedCar} expenses={expenses} onBack={()=>setScreen("home")} onAddExpense={()=>setScreen("add-expense")} onMarkSold={()=>setScreen("sell")} onDeleteExpense={handleDeleteExpense} onDeleteCar={handleDeleteCar} onEditCar={()=>setScreen("edit-car")} onEditExpense={(exp)=>{setEditingExpense(exp);setScreen("edit-expense");}}/>;
+  if(screen==="car"&&selectedCar)return<CarDetailScreen car={selectedCar} expenses={expenses} onBack={()=>setScreen("home")} onAddExpense={()=>setScreen("add-expense")} onMarkSold={()=>setScreen("sell")} onDeleteExpense={handleDeleteExpense} onDeleteCar={handleDeleteCar} onEditCar={()=>setScreen("edit-car")} onEditExpense={(exp)=>{setEditingExpense(exp);setScreen("edit-expense");}} onToggleNonna={handleToggleNonna}/>;
   return<HomeScreen cars={cars} expenses={expenses} loading={loading} onSelectCar={(car)=>{setSelectedCarId(car.id);setScreen("car");}} onAddCar={()=>setScreen("add-car")} onHistory={()=>setScreen("history")}/>;
 }
