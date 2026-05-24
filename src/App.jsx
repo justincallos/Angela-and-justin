@@ -223,7 +223,7 @@ const HomeScreen = ({cars,expenses,loading,onSelectCar,onAddCar,onHistory}) => {
   );
 };
 
-const CarDetailScreen = ({car,expenses,onBack,onAddExpense,onMarkSold,onDeleteExpense,onDeleteCar,onEditCar,onEditExpense,onToggleNonna}) => {
+const CarDetailScreen = ({car,expenses,onBack,onAddExpense,onMarkSold,onDeleteExpense,onDeleteCar,onEditCar,onEditExpense,onToggleNonna,onUnmarkSold}) => {
   const carExp=getCarExpenses(expenses,car.id);
   const {totalExpenses,totalCost,justinPaid,angelaPaid}=calcTotals(car,carExp);
   const isSold=car.status==="sold";
@@ -296,6 +296,12 @@ const CarDetailScreen = ({car,expenses,onBack,onAddExpense,onMarkSold,onDeleteEx
         )}
 
         {!isSold&&<div style={{display:"flex",gap:10,marginBottom:24}}><Btn full onClick={onAddExpense}>{I.plus()} Add Expense</Btn><Btn variant="blue" onClick={onMarkSold} small>{I.check()} Mark Sold</Btn></div>}
+
+        {isSold&&(
+          <div style={{marginBottom:24}}>
+            <Btn full variant="ghost" onClick={onUnmarkSold}>↩ Mark as Back in Stock</Btn>
+          </div>
+        )}
 
         <div style={{marginBottom:24}}>
           <div style={{fontSize:16,fontWeight:800,color:C.dark,marginBottom:14,letterSpacing:"-0.02em"}}>Expenses <span style={{color:C.muted,fontWeight:500,fontSize:14}}>({carExp.length})</span></div>
@@ -541,6 +547,7 @@ export default function App() {
   const handleDeleteExpense=async(expId)=>{await supabase.from("expenses").delete().eq("id",expId);setExpenses(prev=>prev.filter(e=>e.id!==expId));};
   const handleEditCar=async(form)=>{const{data,error}=await supabase.from("cars").update({model:form.model,rego:form.rego,purchase_price:Number(form.purchase_price),purchase_date:form.purchase_date||null,photo:form.photo||null,...(form.sell_price?{sell_price:Number(form.sell_price)}:{}),...(form.sold_date?{sold_date:form.sold_date}:{})}).eq("id",selectedCarId).select().single();if(!error&&data){setCars(prev=>prev.map(c=>c.id===selectedCarId?data:c));setScreen("car");}};
   const handleEditExpense=async(form)=>{const{data,error}=await supabase.from("expenses").update({date:form.date,type:form.type,description:form.description||null,amount:Number(form.amount),paid_by:form.paid_by,receipt:form.receipt||null}).eq("id",editingExpense.id).select().single();if(!error&&data){setExpenses(prev=>prev.map(e=>e.id===editingExpense.id?data:e));setEditingExpense(null);setScreen("car");}};
+  const handleUnmarkSold=async()=>{if(!window.confirm("Mark this car as back in stock?"))return;const{data,error}=await supabase.from("cars").update({status:"instock",sell_price:null,sold_date:null}).eq("id",selectedCarId).select().single();if(!error&&data){setCars(prev=>prev.map(c=>c.id===selectedCarId?data:c));setScreen("car");}};
   const handleToggleNonna=async()=>{const newVal=!selectedCar.nonna_funded;const{data,error}=await supabase.from("cars").update({nonna_funded:newVal}).eq("id",selectedCarId).select().single();if(!error&&data){setCars(prev=>prev.map(c=>c.id===selectedCarId?data:c));}};
   const handleDeleteCar=async()=>{if(!window.confirm("Delete this car and all its expenses?"))return;await supabase.from("expenses").delete().eq("car_id",selectedCarId);await supabase.from("cars").delete().eq("id",selectedCarId);setCars(prev=>prev.filter(c=>c.id!==selectedCarId));setExpenses(prev=>prev.filter(e=>e.car_id!==selectedCarId));setScreen("home");};
 
@@ -550,6 +557,6 @@ export default function App() {
   if(screen==="edit-car"&&selectedCar)return<EditCarScreen car={selectedCar} onBack={()=>setScreen("car")} onSave={handleEditCar}/>;
   if(screen==="edit-expense"&&selectedCar&&editingExpense)return<EditExpenseScreen car={selectedCar} expense={editingExpense} onBack={()=>{setEditingExpense(null);setScreen("car");}} onSave={handleEditExpense}/>;
   if(screen==="history")return<SalesHistoryScreen cars={cars} expenses={expenses} onBack={()=>setScreen("home")}/>;
-  if(screen==="car"&&selectedCar)return<CarDetailScreen car={selectedCar} expenses={expenses} onBack={()=>setScreen("home")} onAddExpense={()=>setScreen("add-expense")} onMarkSold={()=>setScreen("sell")} onDeleteExpense={handleDeleteExpense} onDeleteCar={handleDeleteCar} onEditCar={()=>setScreen("edit-car")} onEditExpense={(exp)=>{setEditingExpense(exp);setScreen("edit-expense");}} onToggleNonna={handleToggleNonna}/>;
+  if(screen==="car"&&selectedCar)return<CarDetailScreen car={selectedCar} expenses={expenses} onBack={()=>setScreen("home")} onAddExpense={()=>setScreen("add-expense")} onMarkSold={()=>setScreen("sell")} onDeleteExpense={handleDeleteExpense} onDeleteCar={handleDeleteCar} onEditCar={()=>setScreen("edit-car")} onEditExpense={(exp)=>{setEditingExpense(exp);setScreen("edit-expense");}} onToggleNonna={handleToggleNonna} onUnmarkSold={handleUnmarkSold}/>;
   return<HomeScreen cars={cars} expenses={expenses} loading={loading} onSelectCar={(car)=>{setSelectedCarId(car.id);setScreen("car");}} onAddCar={()=>setScreen("add-car")} onHistory={()=>setScreen("history")}/>;
 }
